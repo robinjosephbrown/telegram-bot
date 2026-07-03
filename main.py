@@ -1,17 +1,23 @@
+from flask import Flask
 from telegram import Update
-from telegram.ext import Updater, MessageHandler, Filters, CallbackContext
+from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
 import os
 
-BOT_TOKEN = "8826394576:AAFZk1x6cKXHajrIRHdxWIqkjj8EvJFdgD8"
+app_web = Flask(__name__)
 
-def reply(update: Update, context: CallbackContext):
-    update.message.reply_text("I am alive")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-updater = Updater(BOT_TOKEN, use_context=True)
-dp = updater.dispatcher
+async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("I am alive")
 
-dp.add_handler(MessageHandler(Filters.text, reply))
+bot = ApplicationBuilder().token(BOT_TOKEN).build()
+bot.add_handler(MessageHandler(filters.TEXT, reply))
 
-print("Bot running...")
-updater.start_polling()
-updater.idle()
+# Web server for Render
+@app_web.route("/")
+def home():
+    return "Bot is alive"
+
+print("Bot running")
+
+bot.run_polling()
