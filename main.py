@@ -14,8 +14,9 @@ async def send_update(app):
         text="I checked the world. Everything is running."
     )
 
-async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("I am alive")
+hjjasync def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    await update.message.reply_text(f"alive. chat_id = {chat_id}")
 
 def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
