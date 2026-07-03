@@ -16,6 +16,7 @@ async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
+    app.post_init = on_start
 
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, reply))
 
