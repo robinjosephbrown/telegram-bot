@@ -1,26 +1,34 @@
+import os
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, ContextTypes, filters
-import os
+from openai import OpenAI
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-YOUR_CHAT_ID = 6807975624
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
 
 async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.effective_chat.id
-    await update.message.reply_text(f"alive. chat_id = {chat_id}")
+    user_text = update.message.text
 
-async def post_init(app):
-    await app.bot.send_message(
-        chat_id=YOUR_CHAT_ID,
-        text="I'm alive now"
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": user_text}
+        ]
     )
 
+    answer = response.choices[0].message.content
+    await update.message.reply_text(answer)
+
+
 def main():
-    app = ApplicationBuilder().token(BOT_TOKEN).post_init(post_init).build()
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, reply))
 
     print("Bot running...")
     app.run_polling()
+
 
 main()
