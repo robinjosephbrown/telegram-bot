@@ -1,14 +1,22 @@
-from telegram import Update
-from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
 import os
+from telegram import Update
+from telegram.ext import ApplicationBuilder, MessageHandler, ContextTypes, filters
 
-BOT_TOKEN = os.environ.get("BOT_TOKEN")
+TOKEN = os.environ.get("BOT_TOKEN")
 
-async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("I am alive")
+if not TOKEN:
+    raise RuntimeError("BOT_TOKEN not set in environment variables")
 
-app = ApplicationBuilder().token(BOT_TOKEN).build()
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, reply))
+async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("alive")
 
-print("Bot running...")
-app.run_polling()
+def main():
+    app = ApplicationBuilder().token(TOKEN).build()
+
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
+
+    print("bot online")
+    app.run_polling()
+
+if __name__ == "__main__":
+    main()
