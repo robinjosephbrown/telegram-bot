@@ -5,7 +5,7 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, ContextTypes, filters
 from groq import Groq
 
-# ---------- LOGGING ----------
+# ---------- LOG ----------
 logging.basicConfig(level=logging.INFO)
 
 # ---------- ENV ----------
@@ -40,11 +40,11 @@ def save_memory(data):
 memory = load_memory()
 
 
-def safe(x):
-    return x if x else "unknown"
+def safe(v):
+    return v if v else "unknown"
 
 
-# ---------- BOT LOGIC ----------
+# ---------- BOT ----------
 async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         if not update.message or not update.message.text:
@@ -54,6 +54,7 @@ async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = update.message.text.strip()
         lower = text.lower()
 
+        # init user
         if user_id not in memory["users"]:
             memory["users"][user_id] = {
                 "name": None,
@@ -63,7 +64,7 @@ async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         user = memory["users"][user_id]
 
-        # ---------- SIMPLE MEMORY ----------
+        # ---------- MEMORY EXTRACTION ----------
         if "my name is" in lower:
             user["name"] = text.split("is")[-1].strip()
 
@@ -73,7 +74,7 @@ async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 user["likes"].append(like)
                 user["likes"] = user["likes"][-10:]
 
-        # ---------- DIRECT ANSWERS ----------
+        # ---------- DIRECT ANSWERS (NO AI) ----------
         if lower in ["what is my name", "what's my name"]:
             await update.message.reply_text(user["name"] or "I don't know yet.")
             return
@@ -90,14 +91,15 @@ async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user["chat"].append({"role": "user", "content": text})
         user["chat"] = user["chat"][-12:]
 
-        # ---------- SYSTEM PROMPT (IMPORTANT FIX) ----------
+        # ---------- SYSTEM (FIXED: NO CONTRADICTIONS) ----------
         system = {
             "role": "system",
             "content": (
-                "You are Oblivion, a calm AI assistant.\n"
-                "Respond naturally and briefly.\n"
-                "Do not force conversation.\n"
-                "Do not over-explain.\n\n"
+                "You are Oblivion, a calm helpful AI.\n"
+                "You MUST treat provided user facts as correct.\n"
+                "Never say you don't know if info is provided.\n"
+                "Do not contradict stored memory.\n"
+                "Be short and natural.\n\n"
                 f"User name: {safe(user['name'])}\n"
                 f"User likes: {safe(user['likes'])}\n"
             )
