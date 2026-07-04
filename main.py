@@ -27,13 +27,12 @@ def save_memory(data):
 
 memory = load_memory()
 
-# --- SAFE GET ---
 def safe(value):
     if value is None:
         return "unknown"
     return value
 
-# --- REPLY ---
+# --- MAIN HANDLER ---
 async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         user_id = str(update.effective_chat.id)
@@ -51,11 +50,10 @@ async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         text = user_text.lower()
 
-        # --- extract name ---
+        # --- extract simple facts ---
         if "my name is" in text:
             user["name"] = user_text.split("is")[-1].strip()
 
-        # --- extract likes ---
         if "i like" in text:
             like = user_text.split("like")[-1].strip()
             if like:
@@ -66,14 +64,31 @@ async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user["chat"].append({"role": "user", "content": user_text})
         user["chat"] = user["chat"][-10:]
 
-        # --- STRONG SYSTEM RULES ---
+        # --- SYSTEM PROMPT (SAFE) ---
         system = {
             "role": "system",
-            "content": f"""
-You are a strict memory-based assistant.
+            "content": (
+                "You are a strict assistant with memory.\n"
+                "RULES:\n"
+                "- Use ONLY provided user info.\n"
+                "- Do NOT guess missing data.\n"
+                "- If unknown, say 'I don't know'.\n"
+                "\n"
+                "USER PROFILE:\n"
+                f"- Name: {safe(user['name'])}\n"
+                f"- Likes: {safe(user['likes'])}\n"
+            )
+        }
 
-RULES:
-- Only use the user profile below.
-- If something is unknown, say "I don't know".
-- NEVER guess or invent facts.
-- Do not halluc
+        messages = [system] + user["chat"]
+
+        # --- AI CALL ---
+        response = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=messages
+        )
+
+        answer = response.choices[0].message.content
+
+        # --- store assistant reply ---
+        user["chat"].append({"role": "
