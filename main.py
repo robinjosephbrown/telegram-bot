@@ -9,20 +9,21 @@ from openai import OpenAI
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-
 async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_text = update.message.text
+    try:
+        user_text = update.message.text
 
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": user_text}
-        ]
-    )
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "user", "content": user_text}
+            ]
+        )
 
-    answer = response.choices[0].message.content
-    await update.message.reply_text(answer)
+        await update.message.reply_text(response.choices[0].message.content)
+
+    except:
+        await update.message.reply_text("bot alive, ai not working")
 
 
 def main():
