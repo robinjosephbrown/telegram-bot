@@ -19,12 +19,21 @@ def load_memory():
         return {"users": {}}
 
 def save_memory(data):
-    with open(MEM_FILE, "w") as f:
-        json.dump(data, f)
+    try:
+        with open(MEM_FILE, "w") as f:
+            json.dump(data, f)
+    except Exception as e:
+        print("save error:", e)
 
 memory = load_memory()
 
-# --- REPLY HANDLER ---
+# --- SAFE GET ---
+def safe(value):
+    if value is None:
+        return "unknown"
+    return value
+
+# --- REPLY ---
 async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         user_id = str(update.effective_chat.id)
@@ -40,64 +49,31 @@ async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         user = memory["users"][user_id]
 
-        # --- extract simple facts ---
         text = user_text.lower()
 
+        # --- extract name ---
         if "my name is" in text:
             user["name"] = user_text.split("is")[-1].strip()
 
+        # --- extract likes ---
         if "i like" in text:
             like = user_text.split("like")[-1].strip()
-            user["likes"].append(like)
-            user["likes"] = user["likes"][-10:]
+            if like:
+                user["likes"].append(like)
+                user["likes"] = user["likes"][-10:]
 
         # --- store chat ---
         user["chat"].append({"role": "user", "content": user_text})
         user["chat"] = user["chat"][-10:]
 
-        # --- system memory (truth layer) ---
+        # --- STRONG SYSTEM RULES ---
         system = {
             "role": "system",
             "content": f"""
-You are a helpful assistant.
+You are a strict memory-based assistant.
 
-User info:
-- Name: {user['name']}
-- Likes: {user['likes']}
-
-Use this info consistently. Do not guess missing facts.
-"""
-        }
-
-        messages = [system] + user["chat"]
-
-        # --- AI CALL ---
-        response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=messages
-        )
-
-        answer = response.choices[0].message.content
-
-        # --- store assistant reply ---
-        user["chat"].append({"role": "assistant", "content": answer})
-
-        # --- save memory ---
-        save_memory(memory)
-
-        await update.message.reply_text(answer)
-
-    except Exception as e:
-        print("error:", e)
-        await update.message.reply_text("bot alive, ai not working")
-
-# --- START BOT ---
-def main():
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, reply))
-
-    print("Bot running...")
-    app.run_polling()
-
-main()
+RULES:
+- Only use the user profile below.
+- If something is unknown, say "I don't know".
+- NEVER guess or invent facts.
+- Do not halluc
