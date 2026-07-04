@@ -22,16 +22,16 @@ def save_memory(data):
     with open(MEM_FILE, "w") as f:
         json.dump(data, f)
 
-# --- LOAD MEMORY ON START ---
+# --- LOAD MEMORY ---
 memory = load_memory()
 
-# --- MAIN REPLY HANDLER ---
+# --- REPLY ---
 async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         user_id = str(update.effective_chat.id)
         user_text = update.message.text
 
-        # create memory bucket
+        # init memory bucket
         if user_id not in memory:
             memory[user_id] = []
 
@@ -41,11 +41,11 @@ async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # keep last 10 messages
         memory[user_id] = memory[user_id][-10:]
 
-        # system identity (important)
+        # IMPORTANT: strong identity anchor
         messages = [
             {
                 "role": "system",
-                "content": "You are a helpful assistant. The user's name is Robin. Remember this."
+                "content": "You are a helpful assistant. The user's name is Robin. You MUST remember this name and use it in conversation."
             }
         ] + memory[user_id]
 
@@ -60,7 +60,7 @@ async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # store assistant reply
         memory[user_id].append({"role": "assistant", "content": answer})
 
-        # save permanently
+        # save to file (persistent memory)
         save_memory(memory)
 
         await update.message.reply_text(answer)
@@ -69,7 +69,7 @@ async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print("error:", e)
         await update.message.reply_text("bot alive, ai not working")
 
-# --- BOT START ---
+# --- START BOT ---
 def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
